@@ -1,6 +1,7 @@
 let express = require('express');
 let appConfig = require('./config/config');
 let app = express();
+require('./config/express')(app, appConfig);
 let http = require("http").Server(app);
 let fs = require("fs");
 let config = JSON.parse(fs.readFileSync("config.json"));
@@ -10,9 +11,9 @@ let dd = new Donedone(
 	config.donedone.username,
 	config.donedone.apikey
 );
-require('./config/express')(app, appConfig);
 let clientsConnected = false;
 let issues = [];
+
 try {
 	stats = fs.lstatSync("issues.json");
 	if (stats.isFile()) {
@@ -23,8 +24,9 @@ try {
 	console.log("issues.json not found or failed to parse");
 }
 
-if (issues == [])
+if (issues.length === 0){
 	issues = dd.getAllActiveIssuesSync();
+}
 
 let statuses = [...new Set(issues.map(issue => issue.status.name))];
 let fixers = [...new Set(issues.map(issue => issue.fixer.name))];
@@ -63,8 +65,6 @@ function fetchIssues(){
 	}
 	setTimeout(fetchIssues, 15000);
 }
-
-//fetchIssues();
 
 process.on('SIGINT', function() {
     console.log("Stopping server...");

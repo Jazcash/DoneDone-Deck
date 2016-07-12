@@ -121,7 +121,7 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 				},
 				animation: 150,
 				onSort: function(evt){
-					console.log(this);
+					this.save();
 				},
 				store: {
 					get: function (sortable) {

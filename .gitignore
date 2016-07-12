@@ -3,3 +3,4 @@ public/components
 .sass-cache
 /config.json
 /issues.json
+/public/css/style.css
