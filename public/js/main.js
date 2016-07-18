@@ -1,18 +1,13 @@
 let socket = io.connect('http://localhost:3000');
 let issueCategories = document.getElementById("issue-categories");
 let limit = -1; // -1 = no limit
-
-socket.on('connect', function(data) {
-	socket.emit('join', 'Hello World from client');
-});
-
 let currentFilter = "status";
-let issues = [];
+let issuePriorities = {};
 let subdomain = "";
 let sortableCategoriesEl;
-let sortableIssuesEls = [];
+let statuses, people, issues, sortableIssuesEls = [];
 
-// categoryKey can be: "status", "fixer", "tester" or project"
+// categoryKey can be: "status", "fixer" or project"
 function renderIssues(categoryKey, categories, headerKey, footerKey){
 	// if sortable instances already exist, destroy them
 	if (sortableCategoriesEl != undefined){
@@ -33,16 +28,16 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 		let category = categories[i];
 		let categoryEl = document.createElement('div');
 		categoryEl.className = "category";
-		categoryEl.id = category.replace(/ /g,'');
+		categoryEl.setAttribute("data-id", category.id);
 		let categoryTitleEl = document.createElement('div');
 		categoryTitleEl.className = "category-title";
-		let categoryTitle = document.createTextNode(category);
+		let categoryTitle = document.createTextNode(category.name);
 		categoryTitleEl.appendChild(categoryTitle);
 		categoryEl.appendChild(categoryTitleEl);
 		let issuesEl = document.createElement("div");
 		issuesEl.className = "issues"
 		categoryEl.appendChild(issuesEl);
-		categoryElements[category] = categoryEl;
+		categoryElements[category.id] = categoryEl;
 	}
 
 	// iterate through all the issues and append them to their respective categories
@@ -50,7 +45,7 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 		let issue = issues[i];
 		let issueEl = document.createElement("div");
 		issueEl.className = "issue " + issue.priority.name;
-		issueEl.id = issue.project.id + "-" + issue.order_number;
+		issueEl.setAttribute("data-id", issue.project.id + "-" + issue.order_number);
 		let issueHeaderEl = document.createElement("div");
 		issueHeaderEl.className = "issue-header";
 		let issueHeaderText = document.createTextNode(issue[headerKey].name);
@@ -66,7 +61,7 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 		issueEl.appendChild(issueHeaderEl);
 		issueEl.appendChild(issueTitleEl);
 		issueEl.appendChild(issueFooterEl);
-		categoryElements[issue[categoryKey].name].children[1].appendChild(issueEl);
+		categoryElements[issue[categoryKey].id].children[1].appendChild(issueEl);
 	}
 
 	// add all the categories to a parent node, then add that node to the DOM
@@ -81,8 +76,8 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 	// set the column title heights to all be the same
 	let tallest = 0;
 	$(".category-title").each(function(i, el){
-		if ($(el).height() > tallest)
-			tallest = $(el).height();
+		if ($(el).outerHeight() > tallest)
+			tallest = $(el).outerHeight();
 	});
 	$(".category-title").css("min-height", tallest);
 
@@ -100,38 +95,63 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 		},
 		store: {
 			get: function (sortable) {
-				var order = localStorage.getItem(sortable.options.group.name);
+				//let order = sortable.toArray();
+				//return order.reverse();
+				let order = localStorage.getItem(sortable.options.group.name);
 				return order ? order.split('|') : [];
 			},
 			set: function (sortable) {
-				var order = sortable.toArray();
+				let order = sortable.toArray();
 				localStorage.setItem(sortable.options.group.name, order.join('|'));
 			}
 		}
 	});
 
+	let groupNames = [];
+
 	Array.from(document.getElementsByClassName("issues")).forEach(function(el){
+		let thisGroupName = el.parentElement.getAttribute("data-id");
+		groupNames.push(thisGroupName);
+
 		sortableIssuesEls.push(
 			Sortable.create(el,
 			{
 				group: {
-					name: "issues",
+					name: thisGroupName,
 					pull: true,
-					put: true
+					put: groupNames
 				},
 				animation: 150,
+				onAdd: function(evt){
+					let issueId = evt.item.getAttribute("data-id");
+					let categoryId = this.option("group").name;
+					switch(currentFilter){
+						case "status":
+							socket.emit("updateIssueStatus", issueId, categoryId, function(response){
+								console.log(response);
+							});
+							break;
+						case "fixer":
+							socket.emit("changeIssueFixer", issueId, categoryId, function(response){
+								console.log(response);
+							});
+							break;
+						case "project":
+							break;
+						default:
+							break;
+					}
+				},
 				onSort: function(evt){
-					this.save();
+					issuePriorities[this.option("group").name] = this.toArray();
+					socket.emit("priorityUpdate", issuePriorities);
 				},
 				store: {
-					get: function (sortable) {
-						var order = localStorage.getItem(sortable.options.group.name);
-						return order ? order.split('|') : [];
+					get: function(sortable) {
+						let order = issuePriorities[sortable.option("group").name] || [];
+						return order;
 					},
-					set: function (sortable) {
-						var order = sortable.toArray();
-						localStorage.setItem(sortable.options.group.name, order.join('|'));
-					}
+					set: function(sortable){}
 				}
 			})
 		);
@@ -152,7 +172,7 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 			isDragging = false;
 			$(window).unbind("mousemove");
 			if (!wasDragging) {
-				let ids = $(el).attr("id").split("-");
+				let ids = $(el).attr("data-id").split("-");
 				let url = `https://${subdomain}.mydonedone.com/issuetracker/projects/${ids[0]}/issues/${ids[1]}`;
 				window.open(url, '_blank');
 			}
@@ -160,40 +180,38 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 	});
 }
 
-function rerenderIssues(statuses, fixers, testers, projects){
+function rerenderIssues(){
 	switch(currentFilter){
 		case "status":
-		renderIssues(currentFilter, statuses.sort(), "project", "fixer");
-		break;
+			renderIssues(currentFilter, statuses, "project", "fixer");
+			break;
 		case "fixer":
-		renderIssues(currentFilter, fixers.sort(), "project", "status");
-		break;
-		case "tester":
-		renderIssues(currentFilter, testers.sort(), "project", "status");
-		break;
+			renderIssues(currentFilter, people, "project", "status");
+			break;
 		case "project":
-		renderIssues(currentFilter, projects.sort(), "fixer", "status");
-		break;
+			renderIssues(currentFilter, projects, "fixer", "status");
+			break;
 		default:
-		break;
+			break;
 	}
 }
 
-socket.on("init", function(_subdomain, _issues, statuses, fixers, testers, projects){
-	issues = _issues;
+socket.on("init", function(_subdomain, _issues, _issuePriorities, _statuses, _people, _projects){
 	subdomain = _subdomain;
-	renderIssues("status", statuses.sort(), "project", "fixer");
+	issues = _issues;
+	issuePriorities = _issuePriorities;4
+	statuses = _statuses;
+	people = _people.map(p => p = {id: p.id, name: `${p.first_name} ${p.last_name}`});
+	projects = _projects.map(p => p = {id: p.id, name: p.title});
+
+	renderIssues("status", statuses, "project", "fixer");
 
 	document.getElementById("filter").addEventListener("change", function(){
 		currentFilter = this.value;
-		rerenderIssues(statuses, fixers, testers, projects);
-	});
-
-	$("#refresh").on("click", function(){
-		rerenderIssues(statuses, fixers, testers, projects);
+		rerenderIssues();
 	});
 });
 
-socket.on("update", function(_issues, statuses, fixers, testers, projects){
-	issues = _issues;
-});
+// socket.on("update", function(_issues, statuses, people, projects){
+// 	issues = _issues;
+// });

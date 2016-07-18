@@ -13,11 +13,15 @@ let dd = new Donedone(
 );
 let clientsConnected = false;
 let issues = [];
+let issuePriorities = {};
+let companyId = config.companiyId || dd.getCompaniesSync()[0].id;
 
 try {
 	stats = fs.lstatSync("issues.json");
 	if (stats.isFile()) {
-		issues = JSON.parse(fs.readFileSync("issues.json"));
+		var dataFile = JSON.parse(fs.readFileSync("issues.json"));
+		issues = dataFile.issues;
+		issuePriorities = dataFile.issuePriorities;
 	}
     console.log("Found issues.json file");
 } catch (e) {
@@ -25,13 +29,12 @@ try {
 }
 
 if (issues.length === 0){
-	issues = dd.getAllActiveIssuesSync();
+	issues = dd.getActiveIssuesSync();
 }
 
-let statuses = [...new Set(issues.map(issue => issue.status.name))];
-let fixers = [...new Set(issues.map(issue => issue.fixer.name))];
-let testers = [...new Set(issues.map(issue => issue.tester.name))];
-let projects = [...new Set(issues.map(issue => issue.project.name))];
+let statuses = dd.getAvailableStatusesSync();
+let people = dd.getCompanySync(companyId).people;
+let projects = dd.getProjectsSync();
 
 let io = require('socket.io').listen(app.listen(appConfig.port, function () {
 	console.log('Express server listening on port ' + appConfig.port);
@@ -39,26 +42,48 @@ let io = require('socket.io').listen(app.listen(appConfig.port, function () {
 
 io.on('connection', function(socket) {
 	console.log(`Client connected: ${socket.id}`);
-	clientsConnected = true;
-	socket.emit("init", config.donedone.subdomain, issues, statuses, fixers, testers, projects);
+	socket.emit("init", config.donedone.subdomain, issues, issuePriorities, statuses, people, projects);
+
+	socket.on("priorityUpdate", function(_issuePriorities){
+		issuePriorities = _issuePriorities;
+		console.log("updated priorities");
+		saveIssuesToFile();
+	});
+
+	socket.on("updateIssueStatus", function(id, statusId, callback){
+		let [projectId, issueId] = id.split("-");
+
+		dd.getAvailableStatuses(projectId, issueId, function(data){
+			for (let i=0; i<data.length; i++){
+				if (data[i].id == statusId){
+					dd.updateIssueStatus(projectId, issueId, statusId, function(error, response, body){
+						callback(body);
+					});
+					return;
+				}
+			}
+
+			callback("NAH M8");
+		});
+	});
+
+	socket.on("updateIssueFixer", function(id, fixerId, callback){
+		let [issueId, projectId] = id.split("-");
+	});
 
 	socket.on("disconnect", function(){
         console.log(`Client disconnected: ${socket.id}`);
-        if (io.sockets.sockets.length === 0)
-        	clientsConnected = false;
     });
 });
 
-function fetchIssues(){
-	if (clientsConnected){
-		console.log("fetching issues...");
-		dd.getAllActiveIssues().then(function(_issues) {
-			statuses = [...new Set(_issues.map(issue => issue.status.name))];
-			fixers = [...new Set(_issues.map(issue => issue.fixer.name))];
-			testers = [...new Set(_issues.map(issue => issue.tester.name))];
-			projects = [...new Set(_issues.map(issue => issue.project.name))];
+//fetchIssues();
 
+function fetchIssues(){
+	if (io.engine.clientsCount > 0){
+		console.log("fetching issues...");
+		dd.getActiveIssues().then(function(_issues) {
 			issues = _issues;
+			saveIssuesToFile();
 		}, function(err) {
 			console.log(err);
 		});
@@ -66,16 +91,21 @@ function fetchIssues(){
 	setTimeout(fetchIssues, 15000);
 }
 
+function saveIssuesToFile(){
+	fs.writeFileSync("issues.json", JSON.stringify({issues: issues, issuePriorities: issuePriorities}));
+	console.log("Saved issues");
+}
+
 process.on('SIGINT', function() {
     console.log("Stopping server...");
-    fs.writeFileSync("issues.json", JSON.stringify(issues));
+    saveIssuesToFile();
     console.log("Saved issues");
     process.exit(1);
 });
 
 process.on('uncaughtException', function(err) {
     console.log('Caught exception: ' + err);
-    fs.writeFileSync("issues.json", JSON.stringify(issues));
+    saveIssuesToFile();
     console.log("Saved issues");
     process.exit(1);
 });
