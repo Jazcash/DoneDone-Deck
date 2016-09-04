@@ -1,8 +1,11 @@
 var request = require('request');
 var syncrequest = require('sync-request');
 
-var Donedone = function(subdomain, username, apikey){
-	this.url = `https://${username}:${apikey}@${subdomain}.mydonedone.com/issuetracker/api/v2`;
+var DoneDone = function(params){
+	this.subdomain = params.subdomain;
+	this.username = params.username;
+	this.password = params.password;
+	this.url = `https://${this.username}:${this.password}@${this.subdomain}.myDoneDone.com/issuetracker/api/v2`;
 }
 
 function asyncRequest(url, callback){
@@ -33,63 +36,71 @@ function promiseRequest(url) {
     });
 }
 
-Donedone.prototype.getCompanies = function(callback){
+DoneDone.prototype.getLoggedInUser = function(callback){
+	asyncrequest(`${this.url}`, callback);
+};
+
+DoneDone.prototype.getLoggedInUserSync = function(){
+	return syncrequest(`${this.url}`);
+};
+
+DoneDone.prototype.getCompanies = function(callback){
 	asyncRequest(`${this.url}/companies.json`, callback);
 };
 
-Donedone.prototype.getCompaniesSync = function(){
+DoneDone.prototype.getCompaniesSync = function(){
 	return syncRequest(`${this.url}/companies.json`);
 };
 
-Donedone.prototype.getCompany = function(companyId, callback){
+DoneDone.prototype.getCompany = function(companyId, callback){
 	asyncRequest(`${this.url}/companies/${companyId}.json`, callback)
 };
 
-Donedone.prototype.getCompanySync = function(companyId){
+DoneDone.prototype.getCompanySync = function(companyId){
 	return syncRequest(`${this.url}/companies/${companyId}.json`)
 };
 
-Donedone.prototype.getProjects = function(callback){
+DoneDone.prototype.getProjects = function(callback){
 	asyncRequest(`${this.url}/projects.json`, callback);
 };
 
-Donedone.prototype.getProjectsSync = function(){
+DoneDone.prototype.getProjectsSync = function(){
 	return syncRequest(`${this.url}/projects.json`);
 };
 
-Donedone.prototype.getProject = function(projectId, callback){
+DoneDone.prototype.getProject = function(projectId, callback){
 	asyncRequest(`${this.url}/project/${projectId}.json`, callback);
 };
 
-Donedone.prototype.getProjectSync = function(projectId){
+DoneDone.prototype.getProjectSync = function(projectId){
 	return syncRequest(`${this.url}/project/${projectId}.json`);
 };
 
-Donedone.prototype.getIssue = function(projectId, issueId, callback){
+DoneDone.prototype.getIssue = function(projectId, issueId, callback){
 	asyncRequest(`${this.url}/projects/${projectId}/issues/${issueId}.json`, callback);
 };
 
-Donedone.prototype.getIssueSync = function(projectId, issueId){
+DoneDone.prototype.getIssueSync = function(projectId, issueId){
 	return syncRequest(`${this.url}/projects/${projectId}/issues/${issueId}.json`);
 };
 
-Donedone.prototype.getAvailableStatuses = function(projectId = 1, issueId = 1, callback) {
+DoneDone.prototype.getAvailableStatuses = function(projectId = 1, issueId = 1, callback) {
 	asyncRequest(`${this.url}/projects/${projectId}/issues/${issueId}/statuses/available_to_change_to.json`, callback);
 };
 
-Donedone.prototype.getAvailableStatusesSync = function(projectId = 1, issueId = 1) {
+DoneDone.prototype.getAvailableStatusesSync = function(projectId = 1, issueId = 1) {
 	return syncRequest(`${this.url}/projects/${projectId}/issues/${issueId}/statuses/available_to_change_to.json`);
 };
 
-Donedone.prototype.getAvailableReassignees = function(projectId, issueId, callback){
+DoneDone.prototype.getAvailableReassignees = function(projectId, issueId, callback){
 	asyncRequest(`${this.url}/projects/${projectId}/issues/${issueId}/people/available_for_reassignment.json`, callback);
 }
 
-Donedone.prototype.getAvailableReassigneesSync = function(projectId, issueId){
+DoneDone.prototype.getAvailableReassigneesSync = function(projectId, issueId){
 	return syncRequest(`${this.url}/projects/${projectId}/issues/${issueId}/people/available_for_reassignment.json`);
 }
 
-Donedone.prototype.updateIssue = function(projectId, issueId, params, callback){
+DoneDone.prototype.updateIssue = function(projectId, issueId, params, callback){
 	request({
 		method: "PUT",
 		uri: `${this.url}/projects/${projectId}/issues/${issueId}.json`,
@@ -97,7 +108,7 @@ Donedone.prototype.updateIssue = function(projectId, issueId, params, callback){
 	}, callback);
 };
 
-Donedone.prototype.updateIssueStatus = function(projectId, issueId, statusId, callback){
+DoneDone.prototype.updateIssueStatus = function(projectId, issueId, statusId, callback){
 	request({
 		method: "PUT",
 		uri:  `${this.url}/projects/${projectId}/issues/${issueId}/status.json`,
@@ -105,7 +116,7 @@ Donedone.prototype.updateIssueStatus = function(projectId, issueId, statusId, ca
 	}, callback)
 };
 
-Donedone.prototype.updateIssueFixer = function(projectId, issueId, fixerId, callback){
+DoneDone.prototype.updateIssueFixer = function(projectId, issueId, fixerId, callback){
 	request({
 		method: "PUT",
 		uri:  `${this.url}/projects/${projectId}/issues/${issueId}/fixer.json`,
@@ -113,7 +124,7 @@ Donedone.prototype.updateIssueFixer = function(projectId, issueId, fixerId, call
 	}, callback)
 };
 
-Donedone.prototype.updateIssueTester = function(projectId, issueId, testerId, callback){
+DoneDone.prototype.updateIssueTester = function(projectId, issueId, testerId, callback){
 	request({
 		method: "PUT",
 		uri:  `${this.url}/projects/${projectId}/issues/${issueId}/tester.json`,
@@ -121,7 +132,7 @@ Donedone.prototype.updateIssueTester = function(projectId, issueId, testerId, ca
 	}, callback)
 };
 
-Donedone.prototype.updateIssuePriorityLevel = function(projectId, issueId, priorityLevelId, callback){
+DoneDone.prototype.updateIssuePriorityLevel = function(projectId, issueId, priorityLevelId, callback){
 	request({
 		method: "PUT",
 		uri:  `${this.url}/projects/${projectId}/issues/${issueId}/priority_level.json`,
@@ -129,14 +140,14 @@ Donedone.prototype.updateIssuePriorityLevel = function(projectId, issueId, prior
 	}, callback)
 };
 
-Donedone.prototype.getActiveIssues = function() {
+DoneDone.prototype.getActiveIssues = function() {
     let url = this.url;
     return promiseRequest(url + "/issues/all_active.json?take=500").then(function(results) {
         let data = JSON.parse(results.body);
         let promises = [];
         for (let i = 0; i < data.total_issues; i+= 500) {
             promises.push(promiseRequest(url + `/issues/all_active.json?skip=${i}&take=500`).then(function(results) {
-            	console.log("polling donedone api");
+            	console.log("polling DoneDone api");
                 return JSON.parse(results.body).issues;
             }));
         }
@@ -146,16 +157,16 @@ Donedone.prototype.getActiveIssues = function() {
     });
 };
 
-Donedone.prototype.getActiveIssuesSync = function() {
+DoneDone.prototype.getActiveIssuesSync = function() {
     let url = this.url;
     let issues = [];
-    console.log("polling donedone api");
+    console.log("polling DoneDone api");
     let res = syncrequest("GET", url + "/issues/all_active.json?take=500");
     let data = JSON.parse(res.getBody('utf8'));
     issues = issues.concat(data.issues);
     if (data.total_issues > 500){
     	for (let i=500; i<data.total_issues; i+=500){
-    		console.log("polling donedone api");
+    		console.log("polling DoneDone api");
     		res = syncrequest("GET", url + `/issues/all_active.json?take=500&skip=${i}`);
     		let data = JSON.parse(res.getBody('utf8'));
     		issues = issues.concat(data.issues);
@@ -164,4 +175,4 @@ Donedone.prototype.getActiveIssuesSync = function() {
     return issues;
 };
 
-exports.Donedone = Donedone;
+exports.DoneDone = DoneDone;

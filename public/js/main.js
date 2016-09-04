@@ -1,11 +1,41 @@
 let socket = io.connect('http://localhost:3000');
-let issueCategories = document.getElementById("issue-categories");
 let limit = -1; // -1 = no limit
 let currentFilter = "status";
 let issuePriorities = {};
 let subdomain = "";
 let sortableCategoriesEl;
 let statuses, people, issues, sortableIssuesEls = [];
+
+let divFilter = document.getElementById("filter");
+let btnLoginModal = document.getElementById("btnLoginModal");
+let divLoginModal = document.getElementById("loginModal");
+let txtFieldUsername = document.getElementById("username");
+let btnLogin = document.getElementById("btnLogin");
+let btnCancel = document.getElementById("btnCancel");
+
+divLoginModal.addEventListener("click", function(evt){
+	if (evt.target !== divLoginModal)
+		return false;
+
+	divLoginModal.style.visibility = "hidden";
+});
+
+btnCancel.addEventListener("click", function(){
+	divLoginModal.style.visibility = "hidden";
+});
+
+btnLoginModal.addEventListener("click", function(){
+	divLoginModal.style.visibility = "visible";
+	txtFieldUsername.focus();
+});
+
+btnLogin.addEventListener("click", function(){
+	let username = document.getElementById("username").value;
+	let password = document.getElementById("password").value;
+	socket.emit("login", username, password, function(response){
+
+	});
+});
 
 // categoryKey can be: "status", "fixer" or project"
 function renderIssues(categoryKey, categories, headerKey, footerKey){
@@ -206,9 +236,19 @@ socket.on("init", function(_subdomain, _issues, _issuePriorities, _statuses, _pe
 
 	renderIssues("status", statuses, "project", "fixer");
 
-	document.getElementById("filter").addEventListener("change", function(){
-		currentFilter = this.value;
-		rerenderIssues();
+	let filterButtons = Array.from(divFilter.children);
+	filterButtons.forEach(function(el){
+		el.addEventListener("click", function(evt){
+			let thisFilter = evt.currentTarget.getAttribute("data-filter");
+			if (thisFilter != currentFilter){
+				filterButtons.forEach(function(el){
+					el.className = "";
+				});
+				evt.currentTarget.className = "active";
+				currentFilter = thisFilter;
+				rerenderIssues();
+			}
+		});
 	});
 });
 
