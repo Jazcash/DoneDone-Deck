@@ -7,11 +7,8 @@ let bodyParser = require('body-parser');
 let compress = require('compression');
 let methodOverride = require('method-override');
 let exphbs  = require('express-handlebars');
-let session = require("express-session")({
-	secret: "my-secret",
-	resave: true,
-	saveUninitialized: true
-});
+let session = require('express-session');
+var FileStore = require('session-file-store')(session);
 
 module.exports = function(app, config) {
 	let env = process.env.NODE_ENV || 'development';
@@ -28,7 +25,13 @@ module.exports = function(app, config) {
 
 	// app.use(favicon(config.root + '/public/img/favicon.ico'));
 	app.use(logger('dev'));
-	app.use(session);
+	app.use(session({
+		secret: 'keyboard cat',
+		resave: false,
+		saveUninitialized: true,
+		store: new FileStore,
+		cookie: {expires: new Date(253402300000000)}
+	}));
 	app.use(bodyParser.json());
 	app.use(bodyParser.urlencoded({
 		extended: true

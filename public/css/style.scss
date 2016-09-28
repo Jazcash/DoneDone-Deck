@@ -12,12 +12,15 @@ $blue4: #586169; //lightest
 	display: flex;
 	justify-content: space-between;
 }
+html{height: 100%;}
 
 body{
 	display: flex;
 	flex-direction: column;
-	background: #3C4751;
+	//background: #3C4751;
+	background: $blue3;
 	font-family: 'Oxygen', sans-serif;
+	height: 100%;
 }
 
 button{
@@ -73,71 +76,69 @@ button{
 	}
 }
 
-.overlay{
-	position: fixed;
+.modal-container{
 	width: 100%;
 	height: 100%;
-	top: 0;
-	left: 0;
-	background: rgba(0,0,0,.6);
-	z-index: 3;
+	background: $blue2;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	visibility: hidden;
-	.modal{
-		position: relative;
-		background: $blue3;
-		z-index: 4;
-		display: flex;
-		flex-direction: column;
-		border: 1px solid rgba(255, 255, 255, 0.2);
-		border-bottom: 3px solid $blue2;
-		box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,.24);
-		padding: 24px;
-		font-size: 14px;
-		&-heading{
-			text-align: center;
-			img{
-				max-height: 100px;
-				margin-bottom: 16px;
-			}
-			h3{
-				color: #fff;
-				margin-bottom: 32px;
-			}
-		}
-		input{
-			margin-bottom: 16px;
-			padding: 8px;
-			font-family: "Arial";
-			min-width: 250px;
-			border: none;
-			background: #eee;
-			border: 1px solid #fff;
+}
 
-			border-radius: 2px;
-			&:-webkit-autofill{
-				-webkit-box-shadow: 0 0 0px 1000px #fff inset;
-				color: rgba(0,0,0,.6);
-			}
-			::placeholder{
-				color: red;
-			}
+.modal{
+	position: relative;
+	background: $blue3;
+	z-index: 4;
+	display: flex;
+	flex-direction: column;
+	border: 1px solid rgba(255, 255, 255, 0.2);
+	border-bottom: 3px solid $blue2;
+	box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,.24);
+	padding: 24px;
+	font-size: 14px;
+	max-width: 300px;
+	border-radius: 2px;
+	&-heading{
+		text-align: center;
+		img{
+			max-height: 100px;
+			margin-bottom: 16px;
 		}
-		label{
-			margin-bottom: 5px;
+		h3{
 			color: #fff;
-			font-size: 13px;
-			font-weight: 600;
-			color: #eee;
+			margin-bottom: 32px;
 		}
-		button{
-			width: 40%;
-			&#btnLogin{
-				background: #BFEB12;
-				width: 55%
-			}
+	}
+	input{
+		margin-bottom: 16px;
+		padding: 8px;
+		font-family: "Arial";
+		min-width: 250px;
+		border: none;
+		background: #eee;
+		border: 1px solid #fff;
+
+		border-radius: 2px;
+		&:-webkit-autofill{
+			-webkit-box-shadow: 0 0 0px 1000px #fff inset;
+			color: rgba(0,0,0,.6);
+		}
+		::placeholder{
+			color: red;
+		}
+	}
+	label{
+		margin-bottom: 5px;
+		color: #fff;
+		font-size: 13px;
+		font-weight: 600;
+		color: #eee;
+	}
+	button{
+		width: 40%;
+		&#btnLogin{
+			background: #BFEB12;
+			width: 55%
 		}
 	}
 }

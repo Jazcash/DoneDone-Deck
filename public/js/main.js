@@ -1,7 +1,6 @@
-let socket = io.connect('http://localhost:3000');
 let limit = -1; // -1 = no limit
 let currentFilter = "status";
-let issuePriorities = {};
+var issuePriorities = {};
 let subdomain = "";
 let sortableCategoriesEl;
 let statuses, people, issues, sortableIssuesEls = [];
@@ -13,29 +12,57 @@ let txtFieldUsername = document.getElementById("username");
 let btnLogin = document.getElementById("btnLogin");
 let btnCancel = document.getElementById("btnCancel");
 
-divLoginModal.addEventListener("click", function(evt){
-	if (evt.target !== divLoginModal)
-		return false;
+if (btnLogin){
+	btnLogin.addEventListener("click", login);
+} else {
+	getIssues();
+}
 
-	divLoginModal.style.visibility = "hidden";
-});
-
-btnCancel.addEventListener("click", function(){
-	divLoginModal.style.visibility = "hidden";
-});
-
-btnLoginModal.addEventListener("click", function(){
-	divLoginModal.style.visibility = "visible";
-	txtFieldUsername.focus();
-});
-
-btnLogin.addEventListener("click", function(){
+function login(){
 	let username = document.getElementById("username").value;
 	let password = document.getElementById("password").value;
-	socket.emit("login", username, password, function(response){
 
+	if (username === "" || password === "")
+		return;
+
+	$.post("/login", {username: username, password: password}, function(usertype){
+		if (usertype === "ADMIN" || usertype === "NORMAL"){
+			// initiate loading animation here
+			window.location = "/";
+		} else {
+			alert("Invalid login");
+		}
 	});
-});
+}
+
+function getIssues(){
+	$.post("/issues", function(data){
+		subdomain = data.subdomain;
+		issues = data.issues;
+		if (data.issuePriorities !== undefined)
+			issuePriorities = data.issuePriorities;
+		statuses = data.statuses;
+		people = data.people.map(p => p = {id: p.id, name: `${p.first_name} ${p.last_name}`});
+		projects = data.projects.map(p => p = {id: p.id, name: p.title});
+
+		renderIssues("status", statuses, "project", "fixer");
+
+		let filterButtons = Array.from(divFilter.children);
+		filterButtons.forEach(function(el){
+			el.addEventListener("click", function(evt){
+				let thisFilter = evt.currentTarget.getAttribute("data-filter");
+				if (thisFilter != currentFilter){
+					filterButtons.forEach(function(el){
+						el.className = "";
+					});
+					evt.currentTarget.className = "active";
+					currentFilter = thisFilter;
+					rerenderIssues();
+				}
+			});
+		});
+	});
+}
 
 // categoryKey can be: "status", "fixer" or project"
 function renderIssues(categoryKey, categories, headerKey, footerKey){
@@ -157,14 +184,14 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 					let categoryId = this.option("group").name;
 					switch(currentFilter){
 						case "status":
-							socket.emit("updateIssueStatus", issueId, categoryId, function(response){
-								console.log(response);
-							});
+							//socket.emit("updateIssueStatus", issueId, categoryId, function(response){
+							//	console.log(response);
+							//});
 							break;
 						case "fixer":
-							socket.emit("changeIssueFixer", issueId, categoryId, function(response){
-								console.log(response);
-							});
+							//socket.emit("changeIssueFixer", issueId, categoryId, function(response){
+							//	console.log(response);
+							//});
 							break;
 						case "project":
 							break;
@@ -174,12 +201,11 @@ function renderIssues(categoryKey, categories, headerKey, footerKey){
 				},
 				onSort: function(evt){
 					issuePriorities[this.option("group").name] = this.toArray();
-					socket.emit("priorityUpdate", issuePriorities);
+					//socket.emit("priorityUpdate", issuePriorities);
 				},
 				store: {
 					get: function(sortable) {
-						let order = issuePriorities[sortable.option("group").name] || [];
-						return order;
+						return issuePriorities[sortable.option("group").name] || [];
 					},
 					set: function(sortable){}
 				}
@@ -226,31 +252,31 @@ function rerenderIssues(){
 	}
 }
 
-socket.on("init", function(_subdomain, _issues, _issuePriorities, _statuses, _people, _projects){
-	subdomain = _subdomain;
-	issues = _issues;
-	issuePriorities = _issuePriorities;4
-	statuses = _statuses;
-	people = _people.map(p => p = {id: p.id, name: `${p.first_name} ${p.last_name}`});
-	projects = _projects.map(p => p = {id: p.id, name: p.title});
+// socket.on("init", function(_subdomain, _issues, _issuePriorities, _statuses, _people, _projects){
+// 	subdomain = _subdomain;
+// 	issues = _issues;
+// 	issuePriorities = _issuePriorities;
+// 	statuses = _statuses;
+// 	people = _people.map(p => p = {id: p.id, name: `${p.first_name} ${p.last_name}`});
+// 	projects = _projects.map(p => p = {id: p.id, name: p.title});
 
-	renderIssues("status", statuses, "project", "fixer");
+// 	renderIssues("status", statuses, "project", "fixer");
 
-	let filterButtons = Array.from(divFilter.children);
-	filterButtons.forEach(function(el){
-		el.addEventListener("click", function(evt){
-			let thisFilter = evt.currentTarget.getAttribute("data-filter");
-			if (thisFilter != currentFilter){
-				filterButtons.forEach(function(el){
-					el.className = "";
-				});
-				evt.currentTarget.className = "active";
-				currentFilter = thisFilter;
-				rerenderIssues();
-			}
-		});
-	});
-});
+// 	let filterButtons = Array.from(divFilter.children);
+// 	filterButtons.forEach(function(el){
+// 		el.addEventListener("click", function(evt){
+// 			let thisFilter = evt.currentTarget.getAttribute("data-filter");
+// 			if (thisFilter != currentFilter){
+// 				filterButtons.forEach(function(el){
+// 					el.className = "";
+// 				});
+// 				evt.currentTarget.className = "active";
+// 				currentFilter = thisFilter;
+// 				rerenderIssues();
+// 			}
+// 		});
+// 	});
+// });
 
 // socket.on("update", function(_issues, statuses, people, projects){
 // 	issues = _issues;

@@ -1,34 +1,9 @@
 <div class="menu" id="menu">
-	<button id="btnLoginModal"><i class="fa fa-sign-in" aria-hidden="true"></i><span>Sign in to edit</span></button>
+	<a href="logout">Logout</a>
 	<button id="refresh" class="refresh"><i class="fa fa-refresh" aria-hidden="true" id="refresh"></i></button>
 	<div class="filter" id="filter">
 		<button data-filter="status" class="active">Status</button>
 		<button data-filter="fixer">Fixer</button>
 		<button data-filter="project">Project</button>
 	</ul>
-</div>
-
-<div class="overlay" id="loginModal">
-	<div class="modal">
-		<div class="modal-heading">
-			<img src="/img/donedone.png">
-			<h3>Sign in to your DoneDone account</h3>
-		</div>
-		<label for="username">Username</label>
-		<input type="text" placeholder="Username" id="username" autocomplete="off">
-		<label for="password">
-			Password or
-			<span class="help-tooltip">
-				API Key
-				<span>
-					If you don't fancy entering your password, you can use your Donedone API token instead, found in your Donedone account settings.
-				</span>
-			</span>
-		</label>
-		<input type="password" placeholder="Password" id="password" autocomplete="off">
-		<div class="flex-row">
-			<button id="btnLogin"><i class="fa fa-sign-in" aria-hidden="true"></i><span>Sign in</span></button>
-			<button id="btnCancel">Cancel</button>
-		</div>
-	</div>
 </div>
